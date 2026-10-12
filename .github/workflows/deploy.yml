@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
      - name: git clone
-       uses: actions/checkout@v2
+       uses: actions/checkout@v4
   Deploy:
     runs-on: ubuntu-latest
     needs: Test
@@ -24,10 +24,28 @@ jobs:
           script: |
             export DEBIAN_FRONTEND=noninteractive
             sudo apt update
-            sudo apt install -y nodejs npm git
+            sudo apt install -y nodejs npm git nginx
             sudo npm install -g pm2
             if [ ! -d ~/color-app ]; then git clone https://github.com/Byttie/color-roulette.git ~/color-app; fi
             cd ~/color-app
             git pull origin main
             npm install --omit=dev
             pm2 restart color-app || pm2 start server.js --name color-app
+            sudo tee /etc/nginx/sites-available/default > /dev/null << 'EOF'
+            server {
+                listen 80 default_server;
+                listen [::]:80 default_server;
+                server_name _;
+
+                location / {
+                    proxy_pass http://localhost:3000;
+                    proxy_http_version 1.1;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+            }
+            EOF
+            sudo nginx -t
+            sudo systemctl enable nginx
+            sudo systemctl restart nginx
