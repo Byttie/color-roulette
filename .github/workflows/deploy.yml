@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  Test:
     runs-on: ubuntu-latest
-    step:
-      -name: git clone
-      uses: actions/checkout@v2
+    steps:
+     - name: git clone
+       uses: actions/checkout@v2
