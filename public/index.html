@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guess the Next Color</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, sans-serif; }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f3f4f6;
+      color: #111827;
+      padding: 16px;
+    }
+    .card {
+      background: #fff;
+      width: 100%;
+      max-width: 440px;
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    .sub { margin: 0 0 20px; color: #6b7280; }
+    .score { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; }
+    .boxes { display: flex; gap: 12px; margin-bottom: 18px; }
+    .box { flex: 1; }
+    .label { font-size: 0.8rem; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .swatch {
+      height: 120px;
+      border-radius: 12px;
+      border: 2px solid #e5e7eb;
+      transition: background 0.3s ease;
+    }
+    #next {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #9ca3af;
+      background: #f9fafb;
+      border-style: dashed;
+    }
+    .row { display: flex; gap: 8px; }
+    input {
+      flex: 1;
+      padding: 12px;
+      font-size: 1rem;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+    }
+    input:focus { outline: none; border-color: #4f46e5; }
+    button {
+      padding: 12px 18px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #4f46e5;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #4338ca; }
+    #message { min-height: 28px; margin: 14px 0; font-weight: 600; }
+    .good { color: #16a34a; }
+    .bad { color: #dc2626; }
+    .options { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
+    .chip {
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      background: #eef2ff;
+      color: #3730a3;
+      border-radius: 999px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .chip:hover { background: #e0e7ff; }
+    #reset { background: transparent; color: #6b7280; font-size: 0.9rem; padding: 6px; }
+    #reset:hover { background: transparent; color: #111827; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Guess the Next Color</h1>
+    <p class="sub">Predict the next color. +1 if right, &minus;1 if wrong.</p>
+    <div class="score">Score: <span id="score">0</span></div>
+
+    <div class="boxes">
+      <div class="box">
+        <div class="label">Current</div>
+        <div class="swatch" id="current"></div>
+      </div>
+      <div class="box">
+        <div class="label">Next</div>
+        <div class="swatch" id="next">?</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <input id="guess" type="text" placeholder="What will the next color be?" autocomplete="off" />
+      <button id="submit">Guess</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="options" id="options"></div>
+    <button id="reset">Reset score</button>
+  </div>
+
+  <script>
+    const COLORS = {
+      red: '#ef4444',
+      blue: '#3b82f6',
+      green: '#22c55e',
+      yellow: '#facc15',
+      orange: '#f97316',
+      purple: '#a855f7',
+      pink: '#ec4899',
+      brown: '#92400e',
+      black: '#111111',
+      gray: '#9ca3af'
+    };
+    const NAMES = Object.keys(COLORS);
+
+    const currentEl = document.getElementById('current');
+    const input = document.getElementById('guess');
+    const message = document.getElementById('message');
+    const scoreEl = document.getElementById('score');
+    const optionsEl = document.getElementById('options');
+
+    let score = 0;
+    let current = null;
+    let next = null; // chosen in advance, hidden from the player
+
+    function pickColor(exclude) {
+      let pick;
+      do {
+        pick = NAMES[Math.floor(Math.random() * NAMES.length)];
+      } while (pick === exclude);
+      return pick;
+    }
+
+    function showCurrent() {
+      currentEl.style.background = COLORS[current];
+    }
+
+    function startGame() {
+      current = pickColor(null);
+      next = pickColor(current);
+      showCurrent();
+    }
+
+    function checkGuess() {
+      const guess = input.value.trim().toLowerCase();
+      if (!guess) return;
+
+      if (guess === next) {
+        score += 1;
+        message.textContent = `Correct! The next color was ${next}. +1`;
+        message.className = 'good';
+      } else {
+        score -= 1;
+        message.textContent = `Wrong! The next color was ${next}. -1`;
+        message.className = 'bad';
+      }
+
+      scoreEl.textContent = score;
+      input.value = '';
+
+      // the revealed color becomes current, then pick a new hidden one
+      current = next;
+      next = pickColor(current);
+      showCurrent();
+      input.focus();
+    }
+
+    NAMES.forEach(name => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = name;
+      chip.addEventListener('click', () => {
+        input.value = name;
+        input.focus();
+      });
+      optionsEl.appendChild(chip);
+    });
+
+    document.getElementById('submit').addEventListener('click', checkGuess);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') checkGuess(); });
+    document.getElementById('reset').addEventListener('click', () => {
+      score = 0;
+      scoreEl.textContent = 0;
+      message.textContent = '';
+      startGame();
+      input.focus();
+    });
+
+    startGame();
+  </script>
+</body>
+</html>
